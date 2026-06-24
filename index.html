@@ -271,37 +271,34 @@
     /* ── Print ── */
     @page {
       size: letter landscape;
-      margin: 0.25in;
+      margin: 0.3in;
     }
 
     @media print {
       body { background: white; }
       #controls { display: none !important; }
       #print-tip { display: none !important; }
-      #doc-wrapper { padding: 0; gap: 0; }
+      #doc-wrapper { padding: 0 !important; gap: 0 !important; }
 
       /*
-        Keep display:flex — the flexbox layout already puts the footer
-        at the bottom and the table in the middle. Just fix the height.
+        Don't use flex in print. The flex layout forced the table into a
+        fixed height and the inherited overflow:hidden clipped row 10 +
+        footer. Instead: plain block flow, never clip, and give each data
+        row an explicit (small) height so all 10 rows + header + title +
+        footer comfortably fit the printable area with room to spare.
 
-        Landscape letter = 8.5in tall.
-        Chrome "Default" margins ≈ 0.39in each → printable ≈ 7.72in.
-        Chrome "None" + our 0.25in @page margin → printable ≈ 8.0in.
-        7.5in fits safely inside both without overflow.
-
-        With height:7.5in + flex layout:
-          • title  (flex-shrink:0) → natural height ~0.5in
-          • table  (flex:1)        → fills ~6.7in
-          • footer (flex-shrink:0) → natural height ~0.3in
-        Total = 7.5in, footer is always on the same page. ✓
+        Landscape letter = 8.5in tall. @page margin 0.3in → ~7.9in printable.
+        Budget: title ~0.45 + header ~0.75 + 10×0.6 (6.0) + footer ~0.35
+              = ~7.55in  <  7.9in  → single page, footer never spills. ✓
       */
       .doc-page {
         width: 100%;
-        height: 7.5in !important;
+        height: auto !important;
         min-height: 0 !important;
-        padding: 0;
+        padding: 0 !important;
         box-shadow: none;
-        /* display:flex inherited from screen CSS — do NOT override */
+        display: block !important;
+        overflow: visible !important;
       }
 
       /* Page break only between pages, never after the last */
@@ -310,8 +307,16 @@
         page-break-after: always;
       }
 
-      .doc-title { margin-bottom: 3px; }
-      .page-note { margin-top: 3px; padding-top: 3px; font-size: 10pt; }
+      .doc-title { margin-bottom: 4px; }
+
+      /* Shrink + lock row heights so 10 rows always fit on one page */
+      .sheet-table { flex: none !important; height: auto !important; }
+      .sheet-table thead th { font-size: 11pt; line-height: 1.15; padding: 2px 4px; }
+      .sheet-table tbody td { font-size: 13pt; padding: 2px 4px; }
+      .sheet-table tbody tr { height: 0.55in; }
+      .lbl-cell { font-size: 13pt; line-height: 1.2; }
+
+      .page-note { margin-top: 6px; padding-top: 4px; font-size: 11pt; }
     }
   </style>
 </head>
