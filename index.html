@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mail Tray Check Out Sheet Generator</title>
+  <style>
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* Force background colors through to print/PDF */
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    /* ── Screen layout ── */
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #d0d0d8;
+      min-height: 100vh;
+    }
+
+    /* ── Controls panel ── */
+    #controls {
+      background: #111827;
+      color: #f3f4f6;
+      padding: 14px 24px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px 20px;
+      align-items: flex-end;
+      border-bottom: 3px solid #ff9900;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    #controls .panel-title {
+      width: 100%;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #ff9900;
+      margin-bottom: 2px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .field label {
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #9ca3af;
+    }
+
+    .field input[type="text"],
+    .field input[type="number"] {
+      padding: 6px 10px;
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 4px;
+      color: #f9fafb;
+      font-size: 13px;
+      min-width: 110px;
+    }
+
+    .field input[type="number"] { min-width: 70px; }
+    .field input[type="text"].wide { min-width: 300px; }
+
+    .field input:focus {
+      outline: none;
+      border-color: #ff9900;
+    }
+
+    .color-pair {
+      display: flex;
+      gap: 10px;
+    }
+
+    .color-swatch {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .color-swatch label {
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #9ca3af;
+    }
+
+    .color-swatch input[type="color"] {
+      width: 60px;
+      height: 34px;
+      padding: 2px 3px;
+      border: 1px solid #374151;
+      border-radius: 4px;
+      background: #1f2937;
+      cursor: pointer;
+    }
+
+    .btn-print {
+      margin-left: auto;
+      background: #dc2626;
+      color: white;
+      border: none;
+      padding: 8px 22px;
+      border-radius: 5px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      align-self: flex-end;
+    }
+
+    .btn-print:hover { background: #b91c1c; }
+
+    /* ── Document wrapper ── */
+    #doc-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 28px 16px 40px;
+      gap: 20px;
+    }
+
+    /* ── Individual page ── */
+    /*
+      Landscape letter: 11" wide × 8.5" tall at 96 dpi screen scale.
+      Each .doc-page is one printed page.
+    */
+    .doc-page {
+      background: white;
+      width: 11in;
+      height: 8.5in;
+      padding: 0.18in 0.12in 0.2in;
+      box-shadow: 0 4px 28px rgba(0,0,0,0.30);
+      font-family: 'Times New Roman', Times, serif;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Title ── */
+    .doc-title {
+      text-align: center;
+      line-height: 1.2;
+      margin-bottom: 5px;
+      flex-shrink: 0;
+    }
+
+    .t-wave {
+      font-size: 28pt;
+      font-weight: bold;
+      text-decoration: underline;
+      padding: 0 2px;
+    }
+
+    .t-guide {
+      font-size: 28pt;
+      font-weight: bold;
+      text-decoration: underline;
+      padding: 0 2px;
+    }
+
+    .t-sub {
+      font-size: 17pt;
+      font-weight: bold;
+    }
+
+    /* ── Table ── */
+    .sheet-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      flex: 1;
+    }
+
+    /* Column widths: exact DXA ratios from source docx
+       2985 / 2880 / 1305 / 1155 / 1065 / 6135  (total 15525) */
+    .sheet-table colgroup col:nth-child(1) { width: 19.23%; }
+    .sheet-table colgroup col:nth-child(2) { width: 18.55%; }
+    .sheet-table colgroup col:nth-child(3) { width: 8.41%;  }
+    .sheet-table colgroup col:nth-child(4) { width: 7.44%;  }
+    .sheet-table colgroup col:nth-child(5) { width: 6.86%;  }
+    .sheet-table colgroup col:nth-child(6) { width: 39.52%; }
+
+    .sheet-table th,
+    .sheet-table td {
+      border: 1px solid #000;
+      text-align: center;
+      vertical-align: middle;
+      font-family: 'Times New Roman', Times, serif;
+      padding: 3px 4px;
+    }
+
+    .sheet-table thead th {
+      font-size: 12pt;
+      font-weight: bold;
+      background: #fff;
+      line-height: 1.25;
+    }
+
+    .sheet-table tbody td {
+      font-size: 17pt;
+    }
+
+    /* ── Label column header ── */
+    .lbl-header { line-height: 1.4; }
+
+    .lbl-header-title {
+      display: block;
+      font-size: 13pt;
+      font-weight: bold;
+      margin-bottom: 3px;
+    }
+
+    .lbl-header-fmt {
+      display: block;
+      font-size: 9pt;
+      font-weight: normal;
+    }
+
+    /* ── Label data cell ── */
+    .lbl-cell {
+      font-size: 14pt;
+      font-weight: bold;
+      text-align: center;
+      line-height: 1.25;
+    }
+
+    .lbl-cell .seg { padding: 0 1px; }
+
+    /* ── Footer note ── */
+    .page-note {
+      flex-shrink: 0;
+      text-align: center;
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 11pt;
+      font-weight: bold;
+      font-style: italic;
+      margin-top: 6px;
+      padding-top: 4px;
+      border-top: 1px solid #000;
+    }
+
+    /* ── Print ── */
+    @page {
+      size: 11in 8.5in landscape;
+      margin: 0.18in 0.12in 0.2in;
+    }
+
+    @media print {
+      body { background: white; }
+      #controls { display: none !important; }
+      #doc-wrapper { padding: 0; gap: 0; }
+
+      .doc-page {
+        width: 100%;
+        height: 100vh;
+        box-shadow: none;
+        page-break-after: always;
+        break-after: page;
+      }
+
+      .doc-page:last-child {
+        page-break-after: avoid;
+        break-after: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════ CONTROLS ══════════════════════ -->
+<div id="controls">
+  <div class="panel-title">Mail Tray Check Out Sheet Generator</div>
+
+  <div class="field">
+    <label>Wave #</label>
+    <input type="text" id="waveNum" value="53" oninput="generate()">
+  </div>
+
+  <div class="field">
+    <label>Wave Type</label>
+    <input type="text" id="waveType" value="GEN" oninput="generate()">
+  </div>
+
+  <div class="field">
+    <label>Guide / Election Name</label>
+    <input type="text" id="guideName" value="VOTER GUIDE" oninput="generate()" style="min-width:160px">
+  </div>
+
+  <div class="field">
+    <label>Distribution Center</label>
+    <input type="text" id="distCenter" value="Anaheim 928" oninput="generate()" style="min-width:150px">
+  </div>
+
+  <div class="field">
+    <label>Total Trays</label>
+    <input type="number" id="trayCount" value="10" min="1" max="500" oninput="generate()">
+  </div>
+
+  <div class="field">
+    <label>Trays per Page</label>
+    <input type="number" id="perPage" value="10" min="1" max="30" oninput="generate()">
+  </div>
+
+  <div class="color-pair">
+    <div class="color-swatch">
+      <label>Wave Color</label>
+      <input type="color" id="c1" value="#ff9900" oninput="generate()">
+    </div>
+    <div class="color-swatch">
+      <label>Guide Color</label>
+      <input type="color" id="c2" value="#9900ff" oninput="generate()">
+    </div>
+  </div>
+
+  <div class="field" style="flex:1; min-width:260px">
+    <label>Footer Note (bottom of every page)</label>
+    <input type="text" id="footerNote" class="wide"
+      value="Please ensure your handwriting is legible — thank you!"
+      oninput="generate()">
+  </div>
+
+  <button class="btn-print" onclick="window.print()">Print / Save PDF</button>
+</div>
+
+<!-- ══════════════════════ DOCUMENT ══════════════════════ -->
+<div id="doc-wrapper">
+  <!-- Pages generated by generate() -->
+</div>
+
+<script>
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function generate() {
+    const waveNum    = esc(document.getElementById('waveNum').value.trim()    || '');
+    const waveType   = esc(document.getElementById('waveType').value.trim()   || '');
+    const guideName  = esc(document.getElementById('guideName').value.trim()  || '');
+    const distCenter = esc(document.getElementById('distCenter').value.trim() || '');
+    const trayCount  = Math.max(1, Math.min(500, parseInt(document.getElementById('trayCount').value) || 1));
+    const perPage    = Math.max(1, Math.min(30,  parseInt(document.getElementById('perPage').value)   || 10));
+    const footerNote = esc(document.getElementById('footerNote').value.trim());
+    const c1 = document.getElementById('c1').value;
+    const c2 = document.getElementById('c2').value;
+
+    const titleWave   = `WAVE ${waveNum} ${waveType}`;
+    const labelPrefix = `Wave ${waveNum} ${waveType}-`;
+    const totalPages  = Math.ceil(trayCount / perPage);
+
+    /* Shared title block */
+    const titleBlock = `
+      <div class="doc-title">
+        <span class="t-wave" style="background:${c1}">${titleWave}</span>
+        <span class="t-guide" style="background:${c2}"> ${guideName}</span>
+        <span class="t-sub"> - Materials Taken Home For Mailing Projects</span>
+      </div>`;
+
+    /* Shared table header */
+    const thead = `
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone<br>Number</th>
+          <th>Date<br>Checked<br>Out</th>
+          <th>Date<br>Due<br>Back</th>
+          <th>Date<br>Checked<br>Back w/Staff<br>Initials</th>
+          <th>
+            <div class="lbl-header">
+              <span class="lbl-header-title" style="background:#ffff00">Label:</span>
+              <span class="lbl-header-fmt">
+                <span style="background:${c1}">${labelPrefix.slice(0,-1)}</span>
+                &nbsp;-&nbsp;
+                <span style="background:${c2}">${distCenter}</span>
+                &nbsp;-&nbsp;Tray # Off label
+              </span>
+            </div>
+          </th>
+        </tr>
+      </thead>`;
+
+    /* Footer note */
+    const noteBlock = footerNote
+      ? `<div class="page-note">${footerNote}</div>`
+      : '';
+
+    /* Build one div per page */
+    let html = '';
+    for (let p = 0; p < totalPages; p++) {
+      const start = p * perPage + 1;
+      const end   = Math.min((p + 1) * perPage, trayCount);
+
+      let rows = '';
+      for (let i = start; i <= end; i++) {
+        rows += `
+          <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="lbl-cell">
+              <span class="seg" style="background:${c1}">${labelPrefix}</span><span
+              class="seg" style="background:${c2}">${distCenter}</span>-<br>Tray #${i}
+            </td>
+          </tr>`;
+      }
+
+      html += `
+        <div class="doc-page">
+          ${titleBlock}
+          <table class="sheet-table">
+            <colgroup><col><col><col><col><col><col></colgroup>
+            ${thead}
+            <tbody>${rows}</tbody>
+          </table>
+          ${noteBlock}
+        </div>`;
+    }
+
+    document.getElementById('doc-wrapper').innerHTML = html;
+  }
+
+  generate();
+</script>
+</body>
+</html>
