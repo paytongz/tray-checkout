@@ -281,38 +281,36 @@
       #doc-wrapper { padding: 0; gap: 0; }
 
       /*
-        Cap each page at 7.4in tall with overflow:hidden.
+        Keep display:flex — the flexbox layout already puts the footer
+        at the bottom and the table in the middle. Just fix the height.
+
         Landscape letter = 8.5in tall.
-        Chrome "Default" margins ≈ 0.39in each side → printable = 7.72in.
-        Chrome "None" + our 0.25in @page margin → printable = 8.0in.
-        7.4in fits safely inside both. Content never overflows to a
-        blank second page, and the footer is always on the same page.
+        Chrome "Default" margins ≈ 0.39in each → printable ≈ 7.72in.
+        Chrome "None" + our 0.25in @page margin → printable ≈ 8.0in.
+        7.5in fits safely inside both without overflow.
+
+        With height:7.5in + flex layout:
+          • title  (flex-shrink:0) → natural height ~0.5in
+          • table  (flex:1)        → fills ~6.7in
+          • footer (flex-shrink:0) → natural height ~0.3in
+        Total = 7.5in, footer is always on the same page. ✓
       */
       .doc-page {
         width: 100%;
-        height: 7.4in !important;
-        overflow: hidden !important;
+        height: 7.5in !important;
+        min-height: 0 !important;
         padding: 0;
         box-shadow: none;
-        display: block !important;
+        /* display:flex inherited from screen CSS — do NOT override */
       }
 
-      /* Force a page break only BETWEEN pages, never after the last */
+      /* Page break only between pages, never after the last */
       .doc-page.not-last {
         break-after: page;
         page-break-after: always;
       }
 
       .doc-title { margin-bottom: 3px; }
-      .sheet-table { flex: none; }
-
-      /*
-        With 7.4in total and title+header+footer taking ~1.75in,
-        rows share the remaining 5.65in: 5.65 / 10 = 0.565in each.
-        0.55in gives a small buffer so the footer is never clipped.
-      */
-      .sheet-table tbody tr { height: 0.55in; }
-
       .page-note { margin-top: 3px; padding-top: 3px; font-size: 10pt; }
     }
   </style>
