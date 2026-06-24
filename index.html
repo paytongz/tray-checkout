@@ -269,14 +269,9 @@
     }
 
     /* ── Print ── */
-    /*
-      Use standard 0.4in margins. Chrome respects these when the user
-      selects "None" in the print dialog; selecting "Default" gives
-      Chrome's own ~0.39in which is close enough.
-    */
     @page {
       size: letter landscape;
-      margin: 0.4in;
+      margin: 0.25in;
     }
 
     @media print {
@@ -286,42 +281,39 @@
       #doc-wrapper { padding: 0; gap: 0; }
 
       /*
-        height: auto — do NOT use 100vh here.
-        100vh in print = the full raw page height (8.5in), not the
-        printable area. Chrome's margins then clip the bottom, cutting
-        off Tray #10 and the footer. With height:auto the div is only
-        as tall as its content and break-after:page handles pagination.
+        Cap each page at 7.4in tall with overflow:hidden.
+        Landscape letter = 8.5in tall.
+        Chrome "Default" margins ≈ 0.39in each side → printable = 7.72in.
+        Chrome "None" + our 0.25in @page margin → printable = 8.0in.
+        7.4in fits safely inside both. Content never overflows to a
+        blank second page, and the footer is always on the same page.
       */
       .doc-page {
         width: 100%;
-        height: auto !important;
+        height: 7.4in !important;
+        overflow: hidden !important;
         padding: 0;
         box-shadow: none;
-        display: block !important;   /* disable flexbox in print */
+        display: block !important;
       }
 
-      /* Only force a page break BETWEEN pages — never after the last one */
+      /* Force a page break only BETWEEN pages, never after the last */
       .doc-page.not-last {
         break-after: page;
         page-break-after: always;
       }
 
-      /* Titles stay compact */
-      .doc-title { margin-bottom: 4px; }
-
-      /* Table sits at natural height — not flex-expanded */
+      .doc-title { margin-bottom: 3px; }
       .sheet-table { flex: none; }
 
       /*
-        Row height sized so 10 rows + title + header + footer
-        fit within the 7.7in available on landscape letter with 0.4in margins:
-          title ~0.50in  + header ~0.65in + footer ~0.28in = 1.43in
-          7.7 - 1.43 = 6.27in / 10 rows ≈ 0.62in each
-        Using 0.60in leaves a small safety margin.
+        With 7.4in total and title+header+footer taking ~1.75in,
+        rows share the remaining 5.65in: 5.65 / 10 = 0.565in each.
+        0.55in gives a small buffer so the footer is never clipped.
       */
-      .sheet-table tbody tr { height: 0.60in; }
+      .sheet-table tbody tr { height: 0.55in; }
 
-      .page-note { margin-top: 4px; padding-top: 3px; }
+      .page-note { margin-top: 3px; padding-top: 3px; font-size: 10pt; }
     }
   </style>
 </head>
