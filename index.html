@@ -8,10 +8,13 @@
     /* ── Reset ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* Force background colors through to print/PDF */
+    /* Force background colors through to print/PDF.
+       forced-color-adjust:none prevents macOS/Windows from overriding
+       colors in high-contrast or grayscale print modes. */
     * {
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
+      forced-color-adjust: none !important;
     }
 
     /* ── Screen layout ── */
@@ -295,13 +298,12 @@
         padding: 0;
         box-shadow: none;
         display: block !important;   /* disable flexbox in print */
-        break-after: page;
-        page-break-after: always;
       }
 
-      .doc-page:last-child {
-        break-after: avoid;
-        page-break-after: avoid;
+      /* Only force a page break BETWEEN pages — never after the last one */
+      .doc-page.not-last {
+        break-after: page;
+        page-break-after: always;
       }
 
       /* Titles stay compact */
@@ -382,10 +384,10 @@
 
 <!-- Print checklist — hidden when actually printing -->
 <div id="print-tip">
-  <strong>Before printing:</strong>
-  &nbsp;① Layout → <strong>Landscape</strong>
-  &nbsp;② More settings → check <strong>Background graphics</strong> (for colors)
-  &nbsp;③ Margins → <strong>None</strong> (best fit)
+  <strong>Before printing in Chrome:</strong>
+  &nbsp;&nbsp;① Layout → <strong>Landscape</strong>
+  &nbsp;&nbsp;② Margins → <strong>None</strong>
+  &nbsp;&nbsp;③ More settings → <strong>Background graphics ✓</strong> &nbsp;←&nbsp; <em>required for colors</em>
 </div>
 
 <!-- ══════════════════════ DOCUMENT ══════════════════════ -->
@@ -474,8 +476,9 @@
           </tr>`;
       }
 
+      const cls = (p < totalPages - 1) ? ' not-last' : '';
       html += `
-        <div class="doc-page">
+        <div class="doc-page${cls}">
           ${titleBlock}
           <table class="sheet-table">
             <colgroup><col><col><col><col><col><col></colgroup>
