@@ -126,6 +126,16 @@
 
     .btn-print:hover { background: #b91c1c; }
 
+    /* ── Print tip bar ── */
+    #print-tip {
+      background: #fefce8;
+      border-bottom: 2px solid #ca8a04;
+      color: #713f12;
+      font-size: 12px;
+      padding: 7px 24px;
+      text-align: center;
+    }
+
     /* ── Document wrapper ── */
     #doc-wrapper {
       display: flex;
@@ -256,28 +266,60 @@
     }
 
     /* ── Print ── */
+    /*
+      Use standard 0.4in margins. Chrome respects these when the user
+      selects "None" in the print dialog; selecting "Default" gives
+      Chrome's own ~0.39in which is close enough.
+    */
     @page {
-      size: 11in 8.5in landscape;
-      margin: 0.18in 0.12in 0.2in;
+      size: letter landscape;
+      margin: 0.4in;
     }
 
     @media print {
       body { background: white; }
       #controls { display: none !important; }
+      #print-tip { display: none !important; }
       #doc-wrapper { padding: 0; gap: 0; }
 
+      /*
+        height: auto — do NOT use 100vh here.
+        100vh in print = the full raw page height (8.5in), not the
+        printable area. Chrome's margins then clip the bottom, cutting
+        off Tray #10 and the footer. With height:auto the div is only
+        as tall as its content and break-after:page handles pagination.
+      */
       .doc-page {
         width: 100%;
-        height: 100vh;
+        height: auto !important;
+        padding: 0;
         box-shadow: none;
-        page-break-after: always;
+        display: block !important;   /* disable flexbox in print */
         break-after: page;
+        page-break-after: always;
       }
 
       .doc-page:last-child {
-        page-break-after: avoid;
         break-after: avoid;
+        page-break-after: avoid;
       }
+
+      /* Titles stay compact */
+      .doc-title { margin-bottom: 4px; }
+
+      /* Table sits at natural height — not flex-expanded */
+      .sheet-table { flex: none; }
+
+      /*
+        Row height sized so 10 rows + title + header + footer
+        fit within the 7.7in available on landscape letter with 0.4in margins:
+          title ~0.50in  + header ~0.65in + footer ~0.28in = 1.43in
+          7.7 - 1.43 = 6.27in / 10 rows ≈ 0.62in each
+        Using 0.60in leaves a small safety margin.
+      */
+      .sheet-table tbody tr { height: 0.60in; }
+
+      .page-note { margin-top: 4px; padding-top: 3px; }
     }
   </style>
 </head>
@@ -336,6 +378,14 @@
   </div>
 
   <button class="btn-print" onclick="window.print()">Print / Save PDF</button>
+</div>
+
+<!-- Print checklist — hidden when actually printing -->
+<div id="print-tip">
+  <strong>Before printing:</strong>
+  &nbsp;① Layout → <strong>Landscape</strong>
+  &nbsp;② More settings → check <strong>Background graphics</strong> (for colors)
+  &nbsp;③ Margins → <strong>None</strong> (best fit)
 </div>
 
 <!-- ══════════════════════ DOCUMENT ══════════════════════ -->
