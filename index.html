@@ -347,6 +347,11 @@
   </div>
 
   <div class="field">
+    <label>Start Tray #</label>
+    <input type="number" id="startNum" value="1" min="1" max="9999" oninput="generate()">
+  </div>
+
+  <div class="field">
     <label>Total Trays</label>
     <input type="number" id="trayCount" value="10" min="1" max="500" oninput="generate()">
   </div>
@@ -403,6 +408,7 @@
     const waveType   = esc(document.getElementById('waveType').value.trim()   || '');
     const guideName  = esc(document.getElementById('guideName').value.trim()  || '');
     const distCenter = esc(document.getElementById('distCenter').value.trim() || '');
+    const startNum   = Math.max(1, Math.min(9999, parseInt(document.getElementById('startNum').value) || 1));
     const trayCount  = Math.max(1, Math.min(500, parseInt(document.getElementById('trayCount').value) || 1));
     const perPage    = Math.max(1, Math.min(30,  parseInt(document.getElementById('perPage').value)   || 10));
     const footerNote = esc(document.getElementById('footerNote').value.trim());
@@ -466,7 +472,7 @@
             <td></td>
             <td class="lbl-cell">
               <span class="seg" style="background:${c1}">${labelPrefix}</span><span
-              class="seg" style="background:${c2}">${distCenter}</span>-<br>Tray #${i}
+              class="seg" style="background:${c2}">${distCenter}</span>-<br>Tray #${startNum + i - 1}
             </td>
           </tr>`;
       }
